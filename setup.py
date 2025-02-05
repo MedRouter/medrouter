@@ -3,6 +3,8 @@ from setuptools import setup, find_packages
 setup(
     name='medrouter',
     version='0.1.0',
+    license='Apache2.0',
+    license_files=['LICENSE'],
     packages=find_packages(),
     install_requires=[
         'requests',
@@ -13,10 +15,10 @@ setup(
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/MedRouter/medrouter',
-    classifiers=[
-        'Programming Language :: Python :: 3',
-        'License :: OSI Approved :: Apache 2.0 License',
-        'Operating System :: OS Independent',
-    ],
+    entry_points={
+        'console_scripts': [
+            'medrouter=medrouter.cli:main',
+        ],
+    },
     python_requires='>=3.6',
 ) 
