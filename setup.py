@@ -20,5 +20,8 @@ setup(
             'medrouter=medrouter.cli:main',
         ],
     },
+    project_urls={
+        "Source Code": "https://github.com/MedRouter/medrouter",
+    },
     python_requires='>=3.6',
 ) 
