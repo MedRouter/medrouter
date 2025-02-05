@@ -1,4 +1,4 @@
-![MedRouter Banner](assets/Medrouter_banner.png)
+![MedRouter Banner](assets/banner.png)
 
 MedRouter is a Python library designed to facilitate the interaction with various APIs for medical AI applications. Currently, it supports segmentation models, with plans to expand into other domains soon. This project is powered by PYCAD.
 
