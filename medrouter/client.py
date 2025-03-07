@@ -2,6 +2,7 @@ import os
 import tempfile
 import zipfile
 import requests
+import time
 import SimpleITK as sitk
 from .config import AVAILABLE_MODELS, ACCEPTED_FILE_TYPES, TASKS, ACCEPTED_EXTRA_OUTPUTS_TYPES
 from .exceptions import ModelNotFoundError, InferenceError, APIKeyError, UnsupportedFileTypeError, PrecheckError, InvalidModelIDError, InvalidExtraOutputTypeError, MissingRequestIDError
@@ -15,7 +16,30 @@ class Segmentation:
     def __init__(self, api_key):
         self.api_key = api_key
 
-    def create(self, source, model: str, model_id: int, extra_output_type: str = None, notes: str = "", prechecks=False):
+    def post(self, source, model: str, model_id: int, extra_output_type: str = None, notes: str = "", prechecks=False):
+        """
+        Post a segmentation request to the API.
+        
+        Args:
+            source: Path to the input file.
+            model: Name of the model to use.
+            model_id: ID of the model to use.
+            extra_output_type: Optional type of extra output to generate.
+            notes: Optional notes to include with the request.
+            prechecks: Whether to perform prechecks on the input file.
+            
+        Returns:
+            The response data as a JSON object.
+            
+        Raises:
+            ModelNotFoundError: If the model is not found.
+            InvalidModelIDError: If the model_id is not valid.
+            InvalidExtraOutputTypeError: If the extra_output_type is not valid.
+            UnsupportedFileTypeError: If the file type is not supported.
+            PrecheckError: If the prechecks fail.
+            APIKeyError: If there is an issue with the API key.
+            InferenceError: If there is an error running inference.
+        """
         if model not in AVAILABLE_MODELS:
             raise ModelNotFoundError(f"Model '{model}' not found. Available models: {', '.join(AVAILABLE_MODELS)}")
             
@@ -58,7 +82,7 @@ class Segmentation:
         except requests.exceptions.RequestException as e:
             raise InferenceError(f"Error running inference: {e}")
     
-    def get_response(self, request_id):
+    def get(self, request_id):
         """
         Get the response for a specific request using its ID.
         
@@ -90,6 +114,83 @@ class Segmentation:
             return response.json()
         except requests.exceptions.RequestException as e:
             raise InferenceError(f"Error getting response: {e}")
+            
+    def process(self, source, model: str, model_id: int, extra_output_type: str = None, notes: str = "", 
+                prechecks=False, check_interval=10, max_retries=None, verbose=True):
+        """
+        Post a segmentation request and wait for the result.
+        
+        This method posts a segmentation request and then polls the API until the request
+        is either processed successfully or fails.
+        
+        Args:
+            source: Path to the input file.
+            model: Name of the model to use.
+            model_id: ID of the model to use.
+            extra_output_type: Optional type of extra output to generate.
+            notes: Optional notes to include with the request.
+            prechecks: Whether to perform prechecks on the input file.
+            check_interval: Number of seconds to wait between status checks.
+            max_retries: Maximum number of status checks to perform (None for unlimited).
+            verbose: Whether to print status updates.
+            
+        Returns:
+            The final response data as a JSON object.
+            
+        Raises:
+            All exceptions from post() and get() methods.
+        """
+        # Post the request
+        if verbose:
+            print("Submitting segmentation request...")
+        
+        post_response = self.post(
+            source=source,
+            model=model,
+            model_id=model_id,
+            extra_output_type=extra_output_type,
+            notes=notes,
+            prechecks=prechecks
+        )
+        
+        request_id = post_response.get("request_id")
+        
+        if verbose:
+            print(f"Request submitted successfully. Request ID: {request_id}")
+            print("Waiting for processing to complete...")
+        
+        # Poll for results
+        retry_count = 0
+        while max_retries is None or retry_count < max_retries:
+            response = self.get(request_id)
+            status = response.get("status")
+            
+            if verbose:
+                print(f"Current status: {status}")
+            
+            if status == "processed" or status == "failed":
+                if verbose:
+                    if status == "processed":
+                        print("Processing completed successfully.")
+                    else:
+                        print("Processing failed.")
+                return response
+            
+            if verbose:
+                print(f"Checking again in {check_interval} seconds...")
+            
+            time.sleep(check_interval)
+            retry_count += 1
+        
+        if verbose and max_retries is not None:
+            print(f"Maximum number of retries ({max_retries}) reached.")
+        
+        # Return the last response even if not complete
+        return response
+
+    # For backward compatibility
+    create = post
+    get_response = get
 
     def _perform_prechecks(self, source):
         try:
