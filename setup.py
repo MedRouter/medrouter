@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='medrouter',
-    version='0.2.0',
+    version='0.4.0',
     license='Apache2.0',
     license_files=['LICENSE'],
     packages=find_packages(),

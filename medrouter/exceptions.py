@@ -16,4 +16,16 @@ class UnsupportedFileTypeError(Exception):
 
 class PrecheckError(Exception):
     """Raised when there is an error during the precheck process."""
+    pass
+
+class InvalidModelIDError(Exception):
+    """Raised when the provided model_id is not found in the available tasks."""
+    pass
+
+class InvalidExtraOutputTypeError(Exception):
+    """Raised when the provided extra_output_type is not in the list of accepted types."""
+    pass
+
+class MissingRequestIDError(Exception):
+    """Raised when the request_id is missing or None."""
     pass 
